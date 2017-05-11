@@ -1,4 +1,6 @@
 
+# -*- coding:utf-8 -*-
+
 import math
 from service import Download
 
@@ -74,9 +76,6 @@ def converter(x,y, cE):
     yTemp *= tmp
     return xTemp,yTemp
 
-
-
-
 def getRange(lat,min1,max1):
     if (min != None) :
         lat = max(lat, min1)
@@ -91,39 +90,88 @@ def getLoop(lng,min,max):
         lng += max - min
     return lng
 
-def changeMCtoXY(x,y,level):
-    x = math.floor(x / pow(2, (18 - level)) / 256);
-    y = math.floor(y / pow(2, (18 - level)) / 256);
+
+
+def getPixelCoordinate(x,y,level):
+    x = abs(x * pow(2,level-18))
+    y = abs(y * pow(2,level-18))
     return x,y
 
 
+def getXY(x,y):
+    x = math.floor(x/256)
+    y = math.floor(y/256)
+    return  int(x),int(y)
+
+
+
+def num2deg(x,y,z):
+    n =2.0 ** z
+    lon_deg = x / n * 360.0 -180.0
+    lat_rad = math.atan(math.sinh(math.pi * ( 1 - 2 *y/n )))
+    lat_deg = math.degrees(lat_rad)
+    return (lat_deg,lon_deg)
+
+
+
 if __name__ == '__main__':
-    lngmin = 115.92
-    lngmax = 116.86
 
-    latmin =39.75
-    latmax =40.10
-
-    levelmax = 16
-
-    nowlng = lngmin
-    nowlat = latmin
-
+    biglevel = 13
     level = 3
+    while (level <= biglevel):
+        print "now down load level " + str(level)
+        fh = open("F:\\hubei.txt")
 
-    while level <= levelmax:
-        while nowlng <= lngmax:
-            while nowlat <= latmax:
-                x, y = convertLL2MC(nowlng, nowlat)
-                x, y = changeMCtoXY(x, y, level)
+        minx = -1
+        miny = -1
+        maxx = 0
+        maxy = 0
+
+        lines = fh.readlines()
+        for line in lines:
+            for point in  line.split(";"):
+                lon = float(point.split(",")[0])
+                lat = float(point.split(",")[1])
+                # print lon,lat
+
+                x, y = convertLL2MC(lon,lat)
+                # print "%.2f , %.2f " % (x, y)
+
+                x, y = getPixelCoordinate(x, y, level)
+                # print x, y
+
+                x, y = getXY(x, y)
+                # print "https://api.map.baidu.com/customimage/tile?&x=%s&y=%s&z=%s" % (x, y, level)
+                if minx < 0:
+                    minx = x;
+                else:
+                    minx = min(minx, x)
+                if miny < 0:
+                    miny = y
+                else:
+                    miny = min(miny, x)
+                maxx = max(maxx, x)
+                maxy = max(maxy, y)
+
+        print minx ,maxx
+        print miny,maxy
+
+        x = minx
+        y = miny
+
+        while(x<=maxx):
+            while(y<=maxy):
                 Download.do_job(str(int(x)), str(int(y)), str(level))
-                nowlat += 0.01
-            nowlat = latmin
-            nowlng += 0.01
-        nowlat = latmin
-        nowlng = lngmin
-        print level
+                y +=1
+            y = miny
+            x +=1
         level +=1
+
+
+
+
+
+
 
 
 
